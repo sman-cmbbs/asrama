@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMASRAMA - Sistem Informasi Manajemen Asrama</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loader {
+            border-top-color: #3b82f6;
+            animation: spinner 0.6s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+    <!-- Indikator Loading Latar Belakang (Dashboard) -->
+    <div id="bgLoader" class="hidden fixed top-4 right-4 bg-white shadow-lg border border-slate-200 rounded-lg p-3 flex items-center space-x-3 z-50">
+        <div class="loader ease-linear rounded-full border-2 border-t-2 border-gray-200 h-5 w-5"></div>
+        <span class="text-xs font-semibold text-slate-600">Menyinkronkan data...</span>
+    </div>
+
+    <!-- 1. HALAMAN LOGIN (Terbuka secara instan) -->
+    <div id="loginSection" class="flex min-h-screen items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white rounded-xl shadow-md border border-slate-200 p-6 space-y-6">
+            <div class="text-center">
+                <h1 class="text-2xl font-bold text-blue-600">SIMASRAMA</h1>
+                <p class="text-sm text-slate-500 mt-1">Sistem Informasi Manajemen Asrama</p>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Username</label>
+                    <input type="text" id="username" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masukkan username">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Password</label>
+                    <input type="password" id="password" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••">
+                </div>
+
+                <div id="loginError" class="hidden text-xs text-red-500 font-medium text-center"></div>
+
+                <button type="submit" id="btnLogin" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg shadow transition duration-150 flex items-center justify-center">
+                    <span id="btnLoginText">Masuk Aplikasi</span>
+                    <div id="btnLoginSpinner" class="hidden loader ease-linear rounded-full border-2 border-t-2 border-white h-4 w-4 ml-2"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. DASHBOARD UTAMA (Hanya tampil setelah login berhasil) -->
+    <div id="dashboardSection" class="hidden min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <span class="text-xl font-bold text-blue-600">SIMASRAMA</span>
+                <span id="userBadge" class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-medium">User</span>
+            </div>
+            <button onclick="handleLogout()" class="text-xs bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 px-3 py-1.5 rounded-lg font-medium transition">
+                Keluar
+            </button>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+            <!-- Ringkasan Statistik -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-500 font-medium">Total Siswa</span>
+                    <h3 id="statSiswa" class="text-2xl font-bold text-slate-800 mt-1">-</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-500 font-medium">Total Kamar</span>
+                    <h3 id="statKamar" class="text-2xl font-bold text-slate-800 mt-1">-</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-500 font-medium">Absensi Hari Ini</span>
+                    <h3 id="statAbsensi" class="text-2xl font-bold text-slate-800 mt-1">-</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-xs text-slate-500 font-medium">Izin Aktif</span>
+                    <h3 id="statIzin" class="text-2xl font-bold text-slate-800 mt-1">-</h3>
+                </div>
+            </div>
+
+            <!-- Tabel Data Siswa -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                    <h2 class="font-bold text-slate-800">Daftar Siswa Asrama</h2>
+                    <button onclick="loadDashboardData()" class="text-xs text-blue-600 hover:underline font-medium">Refresh Data</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 text-xs">
+                            <tr>
+                                <th class="p-3 font-semibold">NISN</th>
+                                <th class="p-3 font-semibold">Nama Lengkap</th>
+                                <th class="p-3 font-semibold">JK</th>
+                                <th class="p-3 font-semibold">No Kamar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableSiswaBody" class="divide-y divide-slate-100 text-slate-700">
+                            <tr>
+                                <td colspan="4" class="p-4 text-center text-slate-400">Data sedang dimuat...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // SERTAKAN WEB APP URL & SHEET ID ANDA DI SINI
+        const API_URL = "https://script.google.com/macros/s/AKfycbyq6rHJ7uo_7fMPzHZC8HNjRrUoHBRDrrtAd_xAihX2hZB9bFxGP8k57-0IRhNqmaGCPQ/exec"; 
+        const SHEET_ID = "1Uunc9TUO6_0lxKhA5JQWeHBaj939tlslFnYrQaPSyuM";
+
+        // Global State
+        window.appState = null;
+
+        // Inisialisasi awal saat halaman dibuka
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('simasrama_session');
+            if (savedUser) {
+                const user = JSON.parse(savedUser);
+                showDashboard(user);
+                loadDashboardData(); // Sinkronisasi data di latar belakang
+            } else {
+                showLoginPage();
+            }
+        });
+
+        // 1. Fungsi Handle Login (Lazy Fetch)
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const userVal = document.getElementById('username').value.trim();
+            const passVal = document.getElementById('password').value.trim();
+            const errEl = document.getElementById('loginError');
+
+            setLoginLoading(true);
+            errEl.classList.add('hidden');
+
+            try {
+                // Tarik data saat login
+                const response = await fetch(`${API_URL}?action=readAll&sheetId=${SHEET_ID}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // Validasi Akun
+                    const foundUser = data.users.find(u => 
+                        String(u.username).toLowerCase() === userVal.toLowerCase() && 
+                        String(u.password) === passVal
+                    );
+
+                    if (foundUser) {
+                        localStorage.setItem('simasrama_session', JSON.stringify(foundUser));
+                        window.appState = data; // Simpan state
+                        showDashboard(foundUser);
+                        renderUI();
+                    } else {
+                        errEl.textContent = 'Username atau Password salah!';
+                        errEl.classList.remove('hidden');
+                    }
+                } else {
+                    errEl.textContent = 'Gagal terhubung ke database.';
+                    errEl.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                errEl.textContent = 'Terjadi kesalahan jaringan.';
+                errEl.classList.remove('hidden');
+            } finally {
+                setLoginLoading(false);
+            }
+        }
+
+        // 2. Fungsi Memuat Data Latar Belakang
+        async function loadDashboardData() {
+            toggleBgLoader(true);
+            try {
+                const response = await fetch(`${API_URL}?action=readAll&sheetId=${SHEET_ID}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    window.appState = data;
+                    renderUI();
+                }
+            } catch (err) {
+                console.error('Gagal memperbarui data:', err);
+            } finally {
+                toggleBgLoader(false);
+            }
+        }
+
+        // 3. Render Tampilan Dashboard berdasarkan Window AppState
+        function renderUI() {
+            if (!window.appState) return;
+
+            const { siswa = [], kamar = [], absensi = [], perizinan = [] } = window.appState;
+
+            // Render Ringkasan Angka
+            document.getElementById('statSiswa').textContent = siswa.length;
+            document.getElementById('statKamar').textContent = kamar.length;
+            document.getElementById('statAbsensi').textContent = absensi.length;
+            document.getElementById('statIzin').textContent = perizinan.length;
+
+            // Render Tabel Siswa
+            const tbody = document.getElementById('tableSiswaBody');
+            if (siswa.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada data siswa.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = siswa.map(item => `
+                <tr class="hover:bg-slate-50 border-b border-slate-100">
+                    <td class="p-3 font-mono text-xs">${item.nisn || '-'}</td>
+                    <td class="p-3 font-medium text-slate-800">${item.nama || '-'}</td>
+                    <td class="p-3">${item.jk || '-'}</td>
+                    <td class="p-3">${item.no_kamar || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Helper UI Navigation
+        function showLoginPage() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
+        }
+
+        function showDashboard(user) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            document.getElementById('userBadge').textContent = user.nama || user.username;
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('simasrama_session');
+            window.appState = null;
+            showLoginPage();
+        }
+
+        function setLoginLoading(isLoading) {
+            const btn = document.getElementById('btnLogin');
+            const btnText = document.getElementById('btnLoginText');
+            const spinner = document.getElementById('btnLoginSpinner');
+            btn.disabled = isLoading;
+            if (isLoading) {
+                btnText.textContent = 'Memverifikasi...';
+                spinner.classList.remove('hidden');
+            } else {
+                btnText.textContent = 'Masuk Aplikasi';
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function toggleBgLoader(show) {
+            const loader = document.getElementById('bgLoader');
+            if (show) loader.classList.remove('hidden');
+            else loader.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
